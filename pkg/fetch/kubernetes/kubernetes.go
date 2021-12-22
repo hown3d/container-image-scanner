@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"log"
+	"sync"
 
 	"github.com/hown3d/container-image-scanner/pkg/fetch"
 	"github.com/hown3d/container-image-scanner/pkg/types"
@@ -65,11 +66,19 @@ func (k kubernetesFetcher) GetImages(ctx context.Context) ([]types.Image, error)
 	if err != nil {
 		return nil, err
 	}
+
+	var wg sync.WaitGroup
 	for _, pod := range pods.Items {
-		images = append(images, getImagesFromContainerStatus(pod.Status.ContainerStatuses)...)
-		images = append(images, getImagesFromContainerStatus(pod.Status.InitContainerStatuses)...)
-		images = append(images, getImagesFromContainerStatus(pod.Status.EphemeralContainerStatuses)...)
+		wg.Add(1)
+		go func(pod corev1.Pod) {
+			defer wg.Done()
+			images = append(images, getImagesFromContainerStatus(pod.Status.ContainerStatuses)...)
+			images = append(images, getImagesFromContainerStatus(pod.Status.InitContainerStatuses)...)
+			images = append(images, getImagesFromContainerStatus(pod.Status.EphemeralContainerStatuses)...)
+		}(pod)
 	}
+	wg.Wait()
+
 	return images, nil
 }
 

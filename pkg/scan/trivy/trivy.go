@@ -2,7 +2,7 @@ package trivy
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/aquasecurity/fanal/analyzer/config"
@@ -17,29 +17,30 @@ import (
 	"github.com/hown3d/container-image-scanner/pkg/types"
 )
 
-type RegistryAuth struct {
-	Username string
-	Password string
-	// Bearer Token to provide for the registry. Will always be
-	Token string
+type registryAuth struct {
+	username string
+	password string
+	// Bearer token to provide for the registry. Will always be
+	token string
 }
 
 type Trivy struct {
 	timeout time.Duration
+	headers http.Header
 	url     string
-	auth    RegistryAuth
+	auth    registryAuth
 }
 
 func WithCredentialAuth(username, password string) func(*Trivy) {
 	return func(t *Trivy) {
-		t.auth.Username = username
-		t.auth.Password = password
+		t.auth.username = username
+		t.auth.password = password
 	}
 }
 
 func WithTokenAuth(token string) func(*Trivy) {
 	return func(t *Trivy) {
-		t.auth.Token = token
+		t.auth.token = token
 	}
 }
 
@@ -49,10 +50,16 @@ func WithTimeout(timeout time.Duration) func(*Trivy) {
 	}
 }
 
+func WithCustomHeaders(headers http.Header) func(*Trivy) {
+	return func(t *Trivy) {
+		t.headers = headers
+	}
+}
 func New(url string, options ...func(*Trivy)) Trivy {
 	t := Trivy{
 		timeout: 1 * time.Second,
 		url:     url,
+		headers: make(http.Header),
 	}
 	for _, opt := range options {
 		opt(&t)
@@ -60,17 +67,20 @@ func New(url string, options ...func(*Trivy)) Trivy {
 	return t
 }
 
-func (t Trivy) Scan(image string) ([]types.Vulnerability, error) {
+func (t Trivy) Scan(image string) (vulnerabilities []types.Vulnerability, err error) {
 	ctx := context.Background()
-	sc, cleanUp, err := t.initializeDockerScanner(ctx, image, client.CustomHeaders{})
+	sc, cleanUp, err := t.initializeDockerScanner(ctx, image)
 	if err != nil {
 		return []types.Vulnerability{}, err
 	}
 
 	defer cleanUp()
 
-	results, err := sc.ScanArtifact(ctx, trivyTypes.ScanOptions{
-		VulnType:            []string{"os", "library"},
+	rep, err := sc.ScanArtifact(ctx, trivyTypes.ScanOptions{
+		// list of vulnerability types (os,library)
+		VulnType: []string{"os", "library"},
+		// list of what security issues to detect
+		SecurityChecks:      []string{"vuln"},
 		ScanRemovedPackages: true,
 		ListAllPackages:     true,
 	})
@@ -78,19 +88,31 @@ func (t Trivy) Scan(image string) ([]types.Vulnerability, error) {
 		return []types.Vulnerability{}, err
 	}
 
-	fmt.Println(results)
-	return []types.Vulnerability{}, nil
+	for _, result := range rep.Results {
+		for _, vuln := range result.Vulnerabilities {
+			v := types.Vulnerability{
+				Level:          vuln.Severity,
+				Description:    vuln.Description,
+				Package:        vuln.PkgName,
+				CurrentVersion: vuln.InstalledVersion,
+				FixedVersion:   vuln.FixedVersion,
+			}
+			vulnerabilities = append(vulnerabilities, v)
+		}
+	}
+
+	return vulnerabilities, nil
 }
 
-func (t Trivy) initializeDockerScanner(ctx context.Context, imageName string, customHeaders client.CustomHeaders) (scanner.Scanner, func(), error) {
+func (t Trivy) initializeDockerScanner(ctx context.Context, imageName string) (scanner.Scanner, func(), error) {
 	remoteScanner := client.NewProtobufClient(client.RemoteURL(t.url))
-	clientScanner := client.NewScanner(customHeaders, remoteScanner)
-	artifactCache := cache.NewRemoteCache(cache.RemoteURL(t.url), nil)
+	clientScanner := client.NewScanner(client.CustomHeaders(t.headers), remoteScanner)
+	artifactCache := cache.NewRemoteCache(cache.RemoteURL(t.url), t.headers)
 
 	dockerOption := fanalTypes.DockerOption{
-		UserName:      t.auth.Username,
-		Password:      t.auth.Password,
-		RegistryToken: t.auth.Token,
+		UserName:      t.auth.username,
+		Password:      t.auth.password,
+		RegistryToken: t.auth.token,
 	}
 
 	dockerImage, cleanup, err := image.NewDockerImage(ctx, imageName, dockerOption)

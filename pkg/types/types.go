@@ -7,6 +7,9 @@ type Image struct {
 }
 
 type Vulnerability struct {
-	Level       string
-	Description string
+	Level          string
+	Description    string
+	Package        string
+	CurrentVersion string
+	FixedVersion   string
 }
