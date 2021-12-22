@@ -1,16 +1,13 @@
 package fetch
 
-import "context"
+import (
+  "context"
+"github.com/hown3d/container-image-scanner/pkg/types")
 
 type Fetcher interface {
-	GetImages(context.Context) ([]Image, error)
+	GetImages(context.Context) ([]types.Image, error)
 }
 
-type Image struct {
-	Name   string
-	Tag    string
-	Digest string
-}
 
 // Register can be called from init() on a plugin in this package
 // It will automatically be added to the Fetchers map to be called externally

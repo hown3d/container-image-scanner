@@ -5,7 +5,8 @@ import (
 	"log"
 
 	"github.com/hown3d/container-image-scanner/pkg/fetch"
-	"github.com/hown3d/container-image-scanner/pkg/util"
+	"github.com/hown3d/container-image-scanner/pkg/types"
+	"github.com/hown3d/container-image-scanner/pkg/util/imageutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -45,19 +46,19 @@ func newClientSet() (kubernetes.Interface, error) {
 	return kubernetes.NewForConfig(c)
 }
 
-func newFetcher() *kubernetesFetcher {
+func newFetcher() kubernetesFetcher {
 	client, err := newClientSet()
 	if err != nil {
 		log.Println("Can't register kubernetes provider")
 	}
-	k := &kubernetesFetcher{
+	k := kubernetesFetcher{
 		client: client,
 	}
 	return k
 }
 
-func (k *kubernetesFetcher) GetImages(ctx context.Context) ([]fetch.Image, error) {
-	var images []fetch.Image
+func (k kubernetesFetcher) GetImages(ctx context.Context) ([]types.Image, error) {
+	var images []types.Image
 	// empty namespace, to fetch from all namespaces
 	podsClient := k.client.CoreV1().Pods("")
 	pods, err := podsClient.List(ctx, metav1.ListOptions{})
@@ -72,12 +73,12 @@ func (k *kubernetesFetcher) GetImages(ctx context.Context) ([]fetch.Image, error
 	return images, nil
 }
 
-func getImagesFromContainerStatus(status []corev1.ContainerStatus) []fetch.Image {
-	var images []fetch.Image
+func getImagesFromContainerStatus(status []corev1.ContainerStatus) []types.Image {
+	var images []types.Image
 	for _, container := range status {
-		name, tag := util.SplitImage(container.Image)
+		name, tag := imageutil.SplitImageFromString(container.Image)
 
-		images = append(images, fetch.Image{Name: name, Tag: tag})
+		images = append(images, types.Image{Name: name, Tag: tag})
 	}
 	return images
 }

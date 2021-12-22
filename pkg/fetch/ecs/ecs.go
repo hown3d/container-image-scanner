@@ -10,7 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hown3d/container-image-scanner/pkg/fetch"
-	"github.com/hown3d/container-image-scanner/pkg/util"
+	"github.com/hown3d/container-image-scanner/pkg/types"
+	"github.com/hown3d/container-image-scanner/pkg/util/imageutil"
 )
 
 const (
@@ -38,14 +39,14 @@ func newService() *ecs.ECS {
 	return ecs.New(sess)
 }
 
-func newFetcher() *ecsFetcher {
-	return &ecsFetcher{
+func newFetcher() ecsFetcher {
+	return ecsFetcher{
 		svc: newService(),
 	}
 }
 
-func (e *ecsFetcher) GetImages(_ context.Context) ([]fetch.Image, error) {
-	var images []fetch.Image
+func (e ecsFetcher) GetImages(_ context.Context) ([]types.Image, error) {
+	var images []types.Image
 	clusters, err := e.svc.ListClusters(&ecs.ListClustersInput{})
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Can't get clusters: %v", err))
@@ -72,8 +73,8 @@ func (e *ecsFetcher) GetImages(_ context.Context) ([]fetch.Image, error) {
 				for _, definition := range out.TaskDefinition.ContainerDefinitions {
 					// NAME:TAG
 					image := *definition.Image
-					name, tag := util.SplitImage(image)
-					images = append(images, fetch.Image{Name: name, Tag: tag})
+					name, tag := imageutil.SplitImageFromString(image)
+					images = append(images, types.Image{Name: name, Tag: tag})
 				}
 			}
 		}
