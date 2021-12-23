@@ -26,11 +26,13 @@ func (k kubernetesFetcher) GetImages(ctx context.Context) ([]types.Image, error)
 		wg.Add(1)
 		go func(pod corev1.Pod) {
 			defer wg.Done()
+			namespace := pod.Namespace
+			pullSecrets := pod.Spec.ImagePullSecrets
 			mu.Lock()
 			defer mu.Unlock()
-			images = append(images, getImagesFromContainerStatus(pod.Status.ContainerStatuses)...)
-			images = append(images, getImagesFromContainerStatus(pod.Status.InitContainerStatuses)...)
-			images = append(images, getImagesFromContainerStatus(pod.Status.EphemeralContainerStatuses)...)
+			images = append(images, k.getImagesFromContainerStatus(ctx, namespace, pullSecrets, pod.Status.ContainerStatuses)...)
+			images = append(images, k.getImagesFromContainerStatus(ctx, namespace, pullSecrets, pod.Status.InitContainerStatuses)...)
+			images = append(images, k.getImagesFromContainerStatus(ctx, namespace, pullSecrets, pod.Status.EphemeralContainerStatuses)...)
 		}(pod)
 	}
 	wg.Wait()
@@ -38,12 +40,14 @@ func (k kubernetesFetcher) GetImages(ctx context.Context) ([]types.Image, error)
 	return images, nil
 }
 
-func getImagesFromContainerStatus(status []corev1.ContainerStatus) []types.Image {
+func (k kubernetesFetcher) getImagesFromContainerStatus(ctx context.Context, namespace string, imagePullSecrets []corev1.LocalObjectReference, status []corev1.ContainerStatus) []types.Image {
 	var images []types.Image
 	for _, container := range status {
 		name, tag := imageutil.SplitImageFromString(container.Image)
 		log.Printf("Adding image %v:%v", name, tag)
-		images = append(images, types.Image{Name: name, Tag: tag})
+		image := types.Image{Name: name, Tag: tag}
+		k.getImagePullSecret(ctx, &image, namespace, imagePullSecrets)
+		images = append(images, image)
 	}
 	return images
 }

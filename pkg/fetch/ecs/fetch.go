@@ -93,8 +93,14 @@ func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, tas
 		}
 		return
 	}
+
 	for _, container := range res.TaskDefinition.ContainerDefinitions {
-		auth, err := e.getImagePullSecret(container.RepositoryCredentials.CredentialsParameter)
+		name, tag := imageutil.SplitImageFromString(*container.Image)
+		image := types.Image{
+			Name: name,
+			Tag:  tag,
+		}
+		err := e.getImagePullSecret(&image, container.RepositoryCredentials.CredentialsParameter)
 		if err != nil {
 			select {
 			case errorChan <- err:
@@ -104,13 +110,7 @@ func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, tas
 				e = errors.Wrap(e, err.Error())
 				errorChan <- e
 			}
-		}
-
-		name, tag := imageutil.SplitImageFromString(*container.Image)
-		image := types.Image{
-			Name: name,
-			Tag:  tag,
-			Auth: auth,
+			return
 		}
 		resultChan <- image
 		log.Printf("Added image %v:%v to resultChannel", name, tag)
