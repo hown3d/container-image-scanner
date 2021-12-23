@@ -6,5 +6,5 @@ import (
 
 type Scanner interface {
 	// Scan gets passed a imagename
-	Scan(string) ([]types.Vulnerability, error)
+	Scan(types.Image) ([]types.Vulnerability, error)
 }

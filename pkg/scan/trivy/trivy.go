@@ -17,31 +17,11 @@ import (
 	"github.com/hown3d/container-image-scanner/pkg/types"
 )
 
-type registryAuth struct {
-	username string
-	password string
-	// Bearer token to provide for the registry. Will always be
-	token string
-}
-
 type Trivy struct {
 	timeout time.Duration
 	headers http.Header
 	url     string
-	auth    registryAuth
-}
-
-func WithCredentialAuth(username, password string) func(*Trivy) {
-	return func(t *Trivy) {
-		t.auth.username = username
-		t.auth.password = password
-	}
-}
-
-func WithTokenAuth(token string) func(*Trivy) {
-	return func(t *Trivy) {
-		t.auth.token = token
-	}
+	auth    types.RegistryAuth
 }
 
 func WithTimeout(timeout time.Duration) func(*Trivy) {
@@ -67,7 +47,7 @@ func New(url string, options ...func(*Trivy)) Trivy {
 	return t
 }
 
-func (t Trivy) Scan(image string) (vulnerabilities []types.Vulnerability, err error) {
+func (t Trivy) Scan(image types.Image) (vulnerabilities []types.Vulnerability, err error) {
 	ctx := context.Background()
 	sc, cleanUp, err := t.initializeDockerScanner(ctx, image)
 	if err != nil {
@@ -104,18 +84,18 @@ func (t Trivy) Scan(image string) (vulnerabilities []types.Vulnerability, err er
 	return vulnerabilities, nil
 }
 
-func (t Trivy) initializeDockerScanner(ctx context.Context, imageName string) (scanner.Scanner, func(), error) {
+func (t Trivy) initializeDockerScanner(ctx context.Context, i types.Image) (scanner.Scanner, func(), error) {
 	remoteScanner := client.NewProtobufClient(client.RemoteURL(t.url))
 	clientScanner := client.NewScanner(client.CustomHeaders(t.headers), remoteScanner)
 	artifactCache := cache.NewRemoteCache(cache.RemoteURL(t.url), t.headers)
 
 	dockerOption := fanalTypes.DockerOption{
-		UserName:      t.auth.username,
-		Password:      t.auth.password,
-		RegistryToken: t.auth.token,
+		UserName:      i.Auth.Username,
+		Password:      i.Auth.Password,
+		RegistryToken: i.Auth.Token,
 	}
 
-	dockerImage, cleanup, err := image.NewDockerImage(ctx, imageName, dockerOption)
+	dockerImage, cleanup, err := image.NewDockerImage(ctx, i.String(), dockerOption)
 	if err != nil {
 		return scanner.Scanner{}, nil, err
 	}

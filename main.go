@@ -13,7 +13,6 @@ import (
 	_ "github.com/hown3d/container-image-scanner/pkg/fetch/kubernetes"
 	"github.com/hown3d/container-image-scanner/pkg/scan/trivy"
 	"github.com/hown3d/container-image-scanner/pkg/types"
-	"github.com/hown3d/container-image-scanner/pkg/util/imageutil"
 )
 
 var (
@@ -48,9 +47,8 @@ func main() {
 		wg.Add(1)
 		go func(image types.Image) {
 			defer wg.Done()
-			i := imageutil.RestoreImageFromStruct(image)
-			fmt.Printf("Scanning image=%v \n", i)
-			vulnerabilities, err := trivy.Scan(i)
+			fmt.Printf("Scanning image=%v \n", image.String())
+			vulnerabilities, err := trivy.Scan(image)
 			if err != nil {
 				log.Fatal(err)
 			}
