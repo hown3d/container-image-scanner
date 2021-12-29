@@ -6,6 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hown3d/container-image-scanner/pkg/fetch"
+	"github.com/hown3d/container-image-scanner/pkg/log"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,6 +19,7 @@ type ecsFetcher struct {
 	sess           *session.Session
 	ecs            *ecs.ECS
 	secretsmanager *secretsmanager.SecretsManager
+	logger         log.Logger
 }
 
 func init() {
@@ -48,5 +51,6 @@ func newFetcher() (fetch.Fetcher, error) {
 	return ecsFetcher{
 		ecs:            newEcsService(sess),
 		secretsmanager: newSecretsManagerService(sess),
+		logger:         logrus.WithField("fetcher", name),
 	}, nil
 }

@@ -3,7 +3,6 @@ package ecs
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -32,21 +31,29 @@ func (e ecsFetcher) GetImages(ctx context.Context) (images []types.Image, err er
 		// split the serviceArns into chunks of size 10
 		chunks := splitServiceArnsIntoChunks(serviceArns, maxServices)
 		size := len(chunks)
-		log.Printf("Adding %v to waitgroup", size)
+		e.logger.Debugf("Adding %v to waitgroup", size)
 		wg.Add(size)
 		for _, chunk := range chunks {
 			go e.getAllContainerImages(ctx, cluster, chunk, resultChan, errorChan, &wg)
 		}
 	}
+	// collector
+	done := make(chan struct{})
 	go func() {
 		for {
-			i := <-resultChan
-			log.Printf("recieved %v", i)
-			images = append(images, i)
+			select {
+			case i := <-resultChan:
+				images = append(images, i)
+			case <-done:
+				return
+			}
 		}
 	}()
+
 	wg.Wait()
 	close(errorChan)
+	close(resultChan)
+	done <- struct{}{}
 
 	for e := range errorChan {
 		if e != nil {
@@ -57,7 +64,7 @@ func (e ecsFetcher) GetImages(ctx context.Context) (images []types.Image, err er
 }
 
 func (e ecsFetcher) getAllClusters(ctx context.Context) (clusterArns []*string, err error) {
-	log.Println("Getting all clusters")
+	e.logger.Debug("Getting all clusters")
 	clusters, err := e.ecs.ListClustersWithContext(ctx, &ecs.ListClustersInput{})
 	if err != nil {
 		return nil, fmt.Errorf("Can't get clusters: %v", err)
@@ -67,7 +74,7 @@ func (e ecsFetcher) getAllClusters(ctx context.Context) (clusterArns []*string, 
 }
 
 func (e ecsFetcher) getAllServices(ctx context.Context, clusterArn *string) (serviceArns []*string, err error) {
-	log.Printf("Getting all services for cluster %v", *clusterArn)
+	e.logger.Debugf("Getting all services for cluster %v", *clusterArn)
 	services, err := e.ecs.ListServicesWithContext(ctx, &ecs.ListServicesInput{Cluster: clusterArn})
 	if err != nil {
 		return nil, fmt.Errorf("Can't list services: %v", err)
@@ -76,13 +83,13 @@ func (e ecsFetcher) getAllServices(ctx context.Context, clusterArn *string) (ser
 	return serviceArns, nil
 }
 
-func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, taskdefinitionArn *string, resultChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
+func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, taskDefinitionArn *string, resultChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	res, err := e.ecs.DescribeTaskDefinitionWithContext(ctx, &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: taskdefinitionArn,
+		TaskDefinition: taskDefinitionArn,
 	})
 	if err != nil {
-		log.Println(err)
+		e.logger.Errorf("Error getting task definition %v: %v", *taskDefinitionArn, err)
 		select {
 		case errorChan <- err:
 		// we're the first worker to fail
@@ -100,28 +107,32 @@ func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, tas
 			Name: name,
 			Tag:  tag,
 		}
-		err := e.getImagePullSecret(&image, container.RepositoryCredentials.CredentialsParameter)
-		if err != nil {
-			select {
-			case errorChan <- err:
-			// we're the first worker to fail
-			default:
-				e := <-errorChan
-				e = errors.Wrap(e, err.Error())
-				errorChan <- e
+
+		//check for imagepullsecret
+		if container.RepositoryCredentials != nil {
+			err := e.getImagePullSecret(&image, container.RepositoryCredentials.CredentialsParameter)
+			if err != nil {
+				select {
+				case errorChan <- err:
+				// we're the first worker to fail
+				default:
+					e := <-errorChan
+					e = errors.Wrap(e, err.Error())
+					errorChan <- e
+				}
+				return
 			}
-			return
 		}
 		resultChan <- image
-		log.Printf("Added image %v:%v to resultChannel", name, tag)
+		e.logger.Infof("Added image %v", image)
 	}
-	log.Printf("Container coroutine for %v is done!", *taskdefinitionArn)
+	e.logger.Debugf("Container coroutine for %v is done!", *taskDefinitionArn)
 }
 
 func (e ecsFetcher) getAllContainerImages(ctx context.Context, clusterArn *string, serviceArns []*string, resultChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if len(serviceArns) <= 0 {
-		log.Println("Length of serviceArns is not greater zero, skipping services")
+		e.logger.Debug("Length of serviceArns is not greater zero, skipping services")
 		return
 	}
 	out, err := e.ecs.DescribeServicesWithContext(ctx, &ecs.DescribeServicesInput{
@@ -130,7 +141,7 @@ func (e ecsFetcher) getAllContainerImages(ctx context.Context, clusterArn *strin
 	})
 	if err != nil {
 		err := fmt.Errorf("Can't describe services: %v", err)
-		log.Println(err.Error())
+		e.logger.Error(err.Error())
 		select {
 		case errorChan <- err:
 		// we're the first worker to fail
@@ -143,7 +154,7 @@ func (e ecsFetcher) getAllContainerImages(ctx context.Context, clusterArn *strin
 	}
 	wg.Add(len(out.Services))
 	for _, services := range out.Services {
-		log.Printf("Getting containers from %v", *services.TaskDefinition)
+		e.logger.Debugf("Getting containers from %v", *services.TaskDefinition)
 		go e.getContainerImageFromTaskDefinition(ctx, services.TaskDefinition, resultChan, errorChan, wg)
 	}
 }

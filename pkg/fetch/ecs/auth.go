@@ -8,6 +8,10 @@ import (
 )
 
 func (e ecsFetcher) getImagePullSecret(image *types.Image, secretArn *string) error {
+	// early return when secretArn is not set
+	if secretArn == nil {
+		return nil
+	}
 	out, err := e.secretsmanager.GetSecretValue(&secretsmanager.GetSecretValueInput{
 		SecretId: secretArn,
 	})

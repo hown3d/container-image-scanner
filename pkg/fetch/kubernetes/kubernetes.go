@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
-	"log"
-
 	"github.com/hown3d/container-image-scanner/pkg/fetch"
+	"github.com/hown3d/container-image-scanner/pkg/log"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -11,6 +11,7 @@ import (
 
 type kubernetesFetcher struct {
 	client kubernetes.Interface
+	logger log.Logger
 }
 
 const (
@@ -18,7 +19,6 @@ const (
 )
 
 func init() {
-	log.Printf("Initializing %v", name)
 	fetch.Register(name, newFetcher)
 }
 
@@ -45,6 +45,7 @@ func newFetcher() (fetch.Fetcher, error) {
 	}
 	k := kubernetesFetcher{
 		client: client,
+		logger: logrus.WithField("fetcher", name),
 	}
 	return k, nil
 }

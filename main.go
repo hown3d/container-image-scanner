@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/hown3d/container-image-scanner/pkg/fetch"
 	_ "github.com/hown3d/container-image-scanner/pkg/fetch/ecs"
+	"github.com/sirupsen/logrus"
 
 	_ "github.com/hown3d/container-image-scanner/pkg/fetch/kubernetes"
 	"github.com/hown3d/container-image-scanner/pkg/scan/trivy"
@@ -26,7 +27,6 @@ func main() {
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-
 	wg.Add(len(fetch.Fetchers))
 	for name, fetcher := range fetch.Fetchers {
 		go func(name string, f fetch.Fetcher) {
@@ -37,26 +37,32 @@ func main() {
 			defer mu.Unlock()
 			images = append(images, i...)
 			if err != nil {
-				log.Fatal(err)
+				logrus.Fatal(err)
 			}
 		}(name, fetcher)
 	}
 	wg.Wait()
 
+	//Fixme: Theres currently a bug when running scan in parallel, that the programm crashes
 	for _, image := range images {
 		wg.Add(1)
 		go func(image types.Image) {
 			defer wg.Done()
-			fmt.Printf("Scanning image=%v \n", image.String())
+			logrus.Infof("Scanning Image %v", image)
 			vulnerabilities, err := trivy.Scan(image)
 			if err != nil {
-				log.Fatal(err)
+				logrus.Errorf("Failed to scan image %v: %v", image, err)
+				return
 			}
-
 			for _, v := range vulnerabilities {
-				log.Printf("Level=%v Package=%v InstalledVersion=%v\n", v.Level, v.Package, v.CurrentVersion)
+				//fmt.Printf("Image=%v Level=%v Package=%v InstalledVersion=%v FixedVersion=%v\nDescription=%v\n\n\n",
+				//image, v.Level, v.Package, v.CurrentVersion, v.FixedVersion, v.Description)
+				jsonData, err := json.Marshal(v)
+				if err != nil {
+					logrus.Fatal(err)
+				}
+				fmt.Println(string(jsonData))
 			}
-
 		}(image)
 	}
 	wg.Wait()

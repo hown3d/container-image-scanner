@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"github.com/hown3d/container-image-scanner/pkg/types"
@@ -44,7 +43,7 @@ func (k kubernetesFetcher) getImagesFromContainerStatus(ctx context.Context, nam
 	var images []types.Image
 	for _, container := range status {
 		name, tag := imageutil.SplitImageFromString(container.Image)
-		log.Printf("Adding image %v:%v", name, tag)
+		k.logger.Infof("Adding image %v:%v", name, tag)
 		image := types.Image{Name: name, Tag: tag}
 		k.getImagePullSecret(ctx, &image, namespace, imagePullSecrets)
 		images = append(images, image)
