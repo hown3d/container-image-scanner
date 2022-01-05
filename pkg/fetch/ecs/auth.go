@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/hown3d/container-image-scanner/pkg/types"
+	"github.com/hown3d/kevo/pkg/types"
 )
 
 func (e ecsFetcher) getImagePullSecret(image *types.Image, secretArn *string) error {

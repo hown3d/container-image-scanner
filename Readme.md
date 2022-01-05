@@ -2,4 +2,4 @@
 
 ## Architecture
 
-![Architecture](./docs/container-image-scanner.drawio.svg)
+![Architecture](./docs/kevo.drawio.svg)

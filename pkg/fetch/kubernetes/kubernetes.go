@@ -1,8 +1,8 @@
 package kubernetes
 
 import (
-	"github.com/hown3d/container-image-scanner/pkg/fetch"
-	"github.com/hown3d/container-image-scanner/pkg/log"
+	"github.com/hown3d/kevo/pkg/fetch"
+	"github.com/hown3d/kevo/pkg/log"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

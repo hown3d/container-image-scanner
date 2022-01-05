@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/hown3d/container-image-scanner/pkg/types"
-	"github.com/hown3d/container-image-scanner/pkg/util/imageutil"
+	"github.com/hown3d/kevo/pkg/types"
+	"github.com/hown3d/kevo/pkg/util/imageutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

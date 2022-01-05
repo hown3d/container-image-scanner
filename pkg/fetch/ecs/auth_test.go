@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/hown3d/container-image-scanner/pkg/types"
+	"github.com/hown3d/kevo/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 

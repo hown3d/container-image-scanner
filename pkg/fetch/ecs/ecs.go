@@ -5,8 +5,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/hown3d/container-image-scanner/pkg/fetch"
-	"github.com/hown3d/container-image-scanner/pkg/log"
+	"github.com/hown3d/kevo/pkg/fetch"
+	"github.com/hown3d/kevo/pkg/log"
 	"github.com/sirupsen/logrus"
 )
 

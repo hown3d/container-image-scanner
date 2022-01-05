@@ -17,8 +17,8 @@ import (
 	"github.com/aquasecurity/trivy/pkg/rpc/client"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
-	"github.com/hown3d/container-image-scanner/pkg/log"
-	"github.com/hown3d/container-image-scanner/pkg/types"
+	"github.com/hown3d/kevo/pkg/log"
+	"github.com/hown3d/kevo/pkg/types"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 )

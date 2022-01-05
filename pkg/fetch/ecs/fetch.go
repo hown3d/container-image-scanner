@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/hown3d/container-image-scanner/pkg/types"
-	"github.com/hown3d/container-image-scanner/pkg/util/imageutil"
+	"github.com/hown3d/kevo/pkg/types"
+	"github.com/hown3d/kevo/pkg/util/imageutil"
 	"github.com/pkg/errors"
 )
 

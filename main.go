@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hown3d/container-image-scanner/pkg/fetch"
-	_ "github.com/hown3d/container-image-scanner/pkg/fetch/ecs"
+	"github.com/hown3d/kevo/pkg/fetch"
+	_ "github.com/hown3d/kevo/pkg/fetch/ecs"
 	"github.com/sirupsen/logrus"
 
-	_ "github.com/hown3d/container-image-scanner/pkg/fetch/kubernetes"
-	"github.com/hown3d/container-image-scanner/pkg/scan/trivy"
-	"github.com/hown3d/container-image-scanner/pkg/types"
+	_ "github.com/hown3d/kevo/pkg/fetch/kubernetes"
+	"github.com/hown3d/kevo/pkg/scan/trivy"
+	"github.com/hown3d/kevo/pkg/types"
 )
 
 var (

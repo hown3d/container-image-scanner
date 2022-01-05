@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/hown3d/container-image-scanner/pkg/types"
+	"github.com/hown3d/kevo/pkg/types"
 )
 
 type Fetcher interface {
