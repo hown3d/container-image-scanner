@@ -16,7 +16,7 @@ var (
 	port     int    = *flag.Int("port", 10000, "port to listen on")
 	certFile string = *flag.String("cert-file", "", "Path to ssl certificate")
 	keyFile  string = *flag.String("key-file", "", "Path to ssl key")
-	trivyURL string = *flag.String("trivyServer", "", "URL of the trivy server")
+	trivyURL string = *flag.String("trivy-server-url", "", "URL of the trivy server")
 )
 
 func main() {
