@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hown3d/kevo/pkg/fetch"
-	"github.com/hown3d/kevo/pkg/tls"
+	tlsConf "github.com/hown3d/kevo/pkg/tls"
 	"github.com/hown3d/kevo/pkg/types"
 	kevopb "github.com/hown3d/kevo/proto/kevo/v1alpha1"
 	"golang.org/x/sync/errgroup"
@@ -18,13 +18,17 @@ type Kevo struct {
 	fetcher fetch.Fetcher
 }
 
-func NewKevo(runtime string, address string, cacertPath string) (Kevo, error) {
-	credentials, err := tls.LoadClientTLSCredentials(cacertPath)
-	if err != nil {
-		return Kevo{}, err
+func NewKevo(runtime string, address string, cacertPath string, tls bool) (Kevo, error) {
+	var grpcOpts []grpc.DialOption
+	if tls {
+		credentials, err := tlsConf.LoadClientTLSCredentials(cacertPath)
+		if err != nil {
+			return Kevo{}, err
+		}
+		grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(credentials))
 	}
 
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(credentials))
+	conn, err := grpc.Dial(address, grpcOpts)
 	if err != nil {
 		return Kevo{}, err
 	}
