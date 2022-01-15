@@ -1,0 +1,39 @@
+// Generated according to https://cloud.google.com/apis/design/standard_methods
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/hown3d/kevo/proto/kevo/v1alpha1;kevo";
+
+
+package kevo.v1alpha1;
+
+service KevoService {
+  rpc SendImage(SendImageRequest) returns (SendImageResponse) {
+    option (google.api.http) = {
+      post: "/v1alpha1/SendImage"
+      body: "*"
+    };
+  }
+}
+
+
+message SendImageRequest {
+  // The cluster name the agent operates on
+  string cluster = 1;
+
+  // information of the fetched container image
+  Image image = 2;
+}
+
+message SendImageResponse {}
+
+message Image {
+  // Name is the full name of the container image
+  string name = 1;
+  // Tag of the container image
+  string tag = 2;
+  // Digest of the container image
+  // optional, since it's not always accesible
+  string digest = 3;
+}

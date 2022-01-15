@@ -10,18 +10,18 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY main.go main.go
+COPY cmd/api/ cmd/api
 COPY pkg/ pkg/
 
 #https://skaffold.dev/docs/workflows/debug/
 ARG SKAFFOLD_GO_GCFLAGS
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -a -o scanner main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -a -o api cmd/api/main.go
 
 FROM alpine
 ENV GOTRACEBACK=all
 WORKDIR /app
 COPY --from=builder /workspace/scanner .
 USER 999:999
-ENTRYPOINT ["/app/scanner"]
+ENTRYPOINT ["/app/api"]

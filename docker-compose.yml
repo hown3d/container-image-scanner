@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  agent:
+    build: ./deploy/agent/
+    environment:
+      APPROLE_SECRET_ID: kevo-agent
+      APPROLE_ROLE_ID: kevo-agent
+      API_HOST: server:10000
+
+  server:
+    build: ./deploy/api/
+    environment:
+      APPROLE_SECRET_ID: kevo-server
+      APPROLE_ROLE_ID: kevo-server
+    ports:
+      - "10000:10000"
+
+  vault-server:
+    build: ./deploy/vault/
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      AGENT_APPROLE_ROLE_ID: kevo-agent
+      AGENT_APPROLE_SECRET_ID: kevo-agent
+      SERVER_APPROLE_ROLE_ID: kevo-server
+      SERVER_APPROLE_SECRET_ID: kevo-server
+    ports:
+      - "8200:8200"

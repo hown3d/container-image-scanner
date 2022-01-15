@@ -1,0 +1,10 @@
+version: v1
+name: buf.build/hown3d/kevo
+deps:
+- buf.build/googleapis/googleapis           
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

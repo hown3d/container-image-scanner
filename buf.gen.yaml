@@ -1,0 +1,18 @@
+version: v1
+plugins:
+  - name: go                                                              
+    out: .                                                            
+    # Can be used to overwrite the path to the go-grpc proto plugin       
+    # by default, will be looked up on path                               
+    opt:                                                                  
+      - paths=source_relative                                             
+  - name: go-grpc                                                         
+    out: .                                                            
+    # Can be used to overwrite the path to the go-grpc proto plugin       
+    # by default, will be looked up on path                               
+    opt:                                                                  
+      - paths=source_relative                                             
+      - require_unimplemented_servers=false
+  #- name: grpc-gateway
+  #  out: proto
+  #  opt: paths=source_relative
