@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	name        string = "ECS"
+	Name        string = "ECS"
 	maxServices int    = 10
 )
 
@@ -23,7 +23,7 @@ type ecsFetcher struct {
 }
 
 func init() {
-	fetch.Register(name, newFetcher)
+	fetch.Register(Name, newFetcher)
 }
 
 func newSession() (*session.Session, error) {
@@ -51,6 +51,6 @@ func newFetcher() (fetch.Fetcher, error) {
 	return ecsFetcher{
 		ecs:            newEcsService(sess),
 		secretsmanager: newSecretsManagerService(sess),
-		logger:         logrus.WithField("fetcher", name),
+		logger:         logrus.WithField("fetcher", Name),
 	}, nil
 }

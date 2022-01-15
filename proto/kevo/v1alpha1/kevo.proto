@@ -24,6 +24,9 @@ message SendImageRequest {
 
   // information of the fetched container image
   Image image = 2;
+
+  // Registry credentials if the image is stored in a private registry
+  Auth auth = 3;
 }
 
 message SendImageResponse {}
@@ -36,4 +39,10 @@ message Image {
   // Digest of the container image
   // optional, since it's not always accesible
   string digest = 3;
+}
+
+message Auth {
+  string username = 1;
+  string password = 2;
+  string token = 3;
 }
