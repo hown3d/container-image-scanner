@@ -8,7 +8,7 @@ import (
 )
 
 type Fetcher interface {
-	GetImages(context.Context) ([]types.Image, error)
+	Fetch(context.Context, chan types.Image, chan error)
 }
 
 // Register can be called from init() on a plugin in this package

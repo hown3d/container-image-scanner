@@ -1,25 +1,40 @@
 package kubernetes
 
 import (
+	"time"
+
 	"github.com/hown3d/kevo/pkg/fetch"
 	"github.com/hown3d/kevo/pkg/log"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 type kubernetesFetcher struct {
-	client kubernetes.Interface
-	logger log.Logger
+	client     kubernetes.Interface
+	logger     log.Logger
+	controller cache.Controller
 }
 
 const (
-	Name string = "Kubernetes"
+	Name       string = "kubernetes"
+	resyncTime        = time.Second * 30
 )
 
-func init() {
-	fetch.Register(Name, newFetcher)
+func NewFetcher() (fetch.Fetcher, error) {
+	client, err := newClientSet()
+	if err != nil {
+		return &kubernetesFetcher{}, err
+	}
+
+	k := kubernetesFetcher{
+		client: client,
+		logger: logrus.WithField("fetcher", Name),
+	}
+
+	return &k, nil
 }
 
 func buildConfig() (*rest.Config, error) {
@@ -36,16 +51,4 @@ func newClientSet() (kubernetes.Interface, error) {
 	}
 
 	return kubernetes.NewForConfig(c)
-}
-
-func newFetcher() (fetch.Fetcher, error) {
-	client, err := newClientSet()
-	if err != nil {
-		return kubernetesFetcher{}, err
-	}
-	k := kubernetesFetcher{
-		client: client,
-		logger: logrus.WithField("fetcher", Name),
-	}
-	return k, nil
 }

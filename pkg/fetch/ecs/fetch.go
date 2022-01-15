@@ -11,20 +11,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (e ecsFetcher) GetImages(ctx context.Context) (images []types.Image, err error) {
-	errorChan := make(chan error)
-	resultChan := make(chan types.Image, 1)
-
+func (e ecsFetcher) Fetch(ctx context.Context, imageChan chan types.Image, errorChan chan error) {
 	clusters, err := e.getAllClusters(ctx)
 	if err != nil {
-		return nil, err
+		errorChan <- err
+		return
 	}
 
 	var wg sync.WaitGroup
 	for _, cluster := range clusters {
 		serviceArns, err := e.getAllServices(ctx, cluster)
 		if err != nil {
-			return nil, err
+			errorChan <- err
+			return
 		}
 
 		// AWS API can handle a maximum off 10 services at the time
@@ -34,33 +33,11 @@ func (e ecsFetcher) GetImages(ctx context.Context) (images []types.Image, err er
 		e.logger.Debugf("Adding %v to waitgroup", size)
 		wg.Add(size)
 		for _, chunk := range chunks {
-			go e.getAllContainerImages(ctx, cluster, chunk, resultChan, errorChan, &wg)
+			go e.getAllContainerImages(ctx, cluster, chunk, imageChan, errorChan, &wg)
 		}
 	}
-	// collector
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case i := <-resultChan:
-				images = append(images, i)
-			case <-done:
-				return
-			}
-		}
-	}()
-
 	wg.Wait()
-	close(errorChan)
-	close(resultChan)
-	done <- struct{}{}
-
-	for e := range errorChan {
-		if e != nil {
-			err = errors.Wrap(err, e.Error())
-		}
-	}
-	return images, err
+	// collector
 }
 
 func (e ecsFetcher) getAllClusters(ctx context.Context) (clusterArns []*string, err error) {
@@ -83,7 +60,7 @@ func (e ecsFetcher) getAllServices(ctx context.Context, clusterArn *string) (ser
 	return serviceArns, nil
 }
 
-func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, taskDefinitionArn *string, resultChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
+func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, taskDefinitionArn *string, imageChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	res, err := e.ecs.DescribeTaskDefinitionWithContext(ctx, &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: taskDefinitionArn,
@@ -123,13 +100,13 @@ func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, tas
 				return
 			}
 		}
-		resultChan <- image
+		imageChan <- image
 		e.logger.Infof("Added image %v", image)
 	}
 	e.logger.Debugf("Container coroutine for %v is done!", *taskDefinitionArn)
 }
 
-func (e ecsFetcher) getAllContainerImages(ctx context.Context, clusterArn *string, serviceArns []*string, resultChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
+func (e ecsFetcher) getAllContainerImages(ctx context.Context, clusterArn *string, serviceArns []*string, imageChan chan types.Image, errorChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if len(serviceArns) <= 0 {
 		e.logger.Debug("Length of serviceArns is not greater zero, skipping services")
@@ -155,7 +132,7 @@ func (e ecsFetcher) getAllContainerImages(ctx context.Context, clusterArn *strin
 	wg.Add(len(out.Services))
 	for _, services := range out.Services {
 		e.logger.Debugf("Getting containers from %v", *services.TaskDefinition)
-		go e.getContainerImageFromTaskDefinition(ctx, services.TaskDefinition, resultChan, errorChan, wg)
+		go e.getContainerImageFromTaskDefinition(ctx, services.TaskDefinition, imageChan, errorChan, wg)
 	}
 }
 

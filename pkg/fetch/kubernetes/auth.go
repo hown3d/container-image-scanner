@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k kubernetesFetcher) getImagePullSecret(ctx context.Context, image *types.Image, namespace string, imagePullSecrets []corev1.LocalObjectReference) error {
+func (k *kubernetesFetcher) getImagePullSecret(ctx context.Context, image types.Image, namespace string, imagePullSecrets []corev1.LocalObjectReference) error {
 	client := k.client.CoreV1().Secrets(namespace)
 	for _, secret := range imagePullSecrets {
 		var auth types.RegistryAuth
