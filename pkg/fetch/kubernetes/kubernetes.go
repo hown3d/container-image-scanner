@@ -15,11 +15,11 @@ type kubernetesFetcher struct {
 }
 
 const (
-	name string = "Kubernetes"
+	Name string = "Kubernetes"
 )
 
 func init() {
-	fetch.Register(name, newFetcher)
+	fetch.Register(Name, newFetcher)
 }
 
 func buildConfig() (*rest.Config, error) {
@@ -45,7 +45,7 @@ func newFetcher() (fetch.Fetcher, error) {
 	}
 	k := kubernetesFetcher{
 		client: client,
-		logger: logrus.WithField("fetcher", name),
+		logger: logrus.WithField("fetcher", Name),
 	}
 	return k, nil
 }

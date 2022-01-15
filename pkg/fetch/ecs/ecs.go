@@ -28,9 +28,7 @@ func init() {
 
 func newSession() (*session.Session, error) {
 	return session.NewSession(
-		&aws.Config{
-			CredentialsChainVerboseErrors: aws.Bool(true),
-		},
+		aws.NewConfig().WithCredentialsChainVerboseErrors(true),
 	)
 }
 
