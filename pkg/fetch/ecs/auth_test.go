@@ -1,86 +1,90 @@
 package ecs
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/hown3d/kevo/internal/testutil"
+	"github.com/hown3d/kevo/mocks"
 	"github.com/hown3d/kevo/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_ecsFetcher_getImagePullSecret(t *testing.T) {
-	type args struct {
-		secretArn *string
-		image     *types.Image
-	}
-	type expected struct {
-		domain string
-	}
 	tests := []struct {
-		name     string
-		expected expected
-		args     args
-		wantAuth bool
-		wantErr  bool
+		name          string
+		expected      types.RegistryAuth
+		secretArn     *string
+		mockSetupFunc func(*string, *mocks.SecretsManagerAPI)
+		wantErr       bool
 	}{
 		{
-			name: "existing secret with username and password",
-			args: args{
-				aws.String("arn:aws:secretsmanager:eu-central-1:191630647891:secret:accso-ti-cloudmanager-registry-z5iyOB"),
-				&types.Image{},
+			name:      "existing secret with username and password",
+			secretArn: aws.String("test-secret"),
+			expected: types.RegistryAuth{
+				Username: "test-user",
+				Password: "test-pass",
 			},
-			expected: expected{
-				domain: "",
+			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
+				mockObj.On("GetSecretValue", &secretsmanager.GetSecretValueInput{
+					SecretId: secretArn,
+				}).Return(&secretsmanager.GetSecretValueOutput{
+					SecretString: aws.String(testutil.GenerateTestRegistryJSON(false, "", "test-user", "test-pass")),
+				}, nil)
 			},
-			wantAuth: true,
-			wantErr:  false,
+			wantErr: false,
 		},
 		{
-			name: "existing secret with docker auth",
-			args: args{
-				aws.String("arn:aws:secretsmanager:eu-central-1:191630647891:secret:accso-infrastruktur-am-registry-k8s-zXfZYG"),
-				&types.Image{},
+			name:      "existing secret with docker auth",
+			secretArn: aws.String("test-secret"),
+			expected: types.RegistryAuth{
+				Domain:   "test-domain.com",
+				Username: "test-user",
+				Password: "test-pass",
 			},
-			expected: expected{
-				domain: "docker.accso.de",
+			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
+				mockObj.On("GetSecretValue", &secretsmanager.GetSecretValueInput{
+					SecretId: secretArn,
+				}).Return(&secretsmanager.GetSecretValueOutput{
+					SecretString: aws.String(testutil.GenerateTestRegistryJSON(true, "test-domain.com", "test-user", "test-pass")),
+				}, nil)
 			},
-			wantAuth: true,
-			wantErr:  false,
+			wantErr: false,
 		},
 		{
-			name: "non existing secret",
-			args: args{
-				aws.String("arn:aws:secretsmanager:eu-central-1:awdawdbajawdjajwd"),
-				&types.Image{},
+			name:      "non existing secret",
+			secretArn: aws.String("test-secret"),
+			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
+				mockObj.On("GetSecretValue", &secretsmanager.GetSecretValueInput{
+					SecretId: secretArn,
+				}).Return(nil, errors.New("error"))
 			},
-			wantAuth: false,
-			wantErr:  true,
+			wantErr: true,
+		},
+		{
+			name:      "empty secret arn",
+			secretArn: nil,
+			expected:  types.RegistryAuth{},
+			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
+				return
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := newTestFetcher(t)
-			err := e.getImagePullSecret(tt.args.image, tt.args.secretArn)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ecsFetcher.getImagePullSecret() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantAuth {
-				assert.True(t, assert.NotEmpty(t, tt.args.image.Auth.Password))
-				assert.True(t, assert.NotEmpty(t, tt.args.image.Auth.Username))
-				assert.Equal(t, tt.expected.domain, tt.args.image.Auth.Domain)
-			}
-		})
-	}
-}
+			mockObj := new(mocks.SecretsManagerAPI)
+			e := newTestFetcher(t, new(mocks.ECSAPI), mockObj)
+			image := &types.Image{}
+			tt.mockSetupFunc(tt.secretArn, mockObj)
 
-func newTestFetcher(t *testing.T) ecsFetcher {
-	sess, err := newSession()
-	if err != nil {
-		t.Logf("Error creating session: %v", err)
-		t.FailNow()
-	}
-	return ecsFetcher{
-		secretsmanager: newSecretsManagerService(sess),
+			err := e.getImagePullSecret(image, tt.secretArn)
+			if tt.wantErr {
+				assert.Error(t, err)
+			}
+			assert.Equal(t, image.Auth, tt.expected)
+		})
 	}
 }

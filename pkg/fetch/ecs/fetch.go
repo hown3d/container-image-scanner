@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hown3d/kevo/pkg/types"
-	"github.com/hown3d/kevo/pkg/util/imageutil"
+	"github.com/hown3d/kevo/pkg/util"
 	"github.com/pkg/errors"
 )
 
@@ -79,7 +79,7 @@ func (e ecsFetcher) getContainerImageFromTaskDefinition(ctx context.Context, tas
 	}
 
 	for _, container := range res.TaskDefinition.ContainerDefinitions {
-		name, tag := imageutil.SplitImageFromString(*container.Image)
+		name, tag := util.SplitImageFromString(*container.Image)
 		image := types.Image{
 			Name: name,
 			Tag:  tag,

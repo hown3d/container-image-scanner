@@ -1,6 +1,9 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type RegistryAuth struct {
 	Domain   string
@@ -60,4 +63,11 @@ func (a *RegistryAuth) UnmarshalJSON(data []byte) error {
 		a.Username = username.(string)
 	}
 	return nil
+}
+
+func (r *RegistryAuth) UnmarshalRegistryAuthJSON(secret []byte) error {
+	if json.Valid(secret) {
+		return json.Unmarshal(secret, r)
+	}
+	return fmt.Errorf("secret is not valid json")
 }

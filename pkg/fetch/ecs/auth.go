@@ -1,7 +1,7 @@
 package ecs
 
 import (
-	"encoding/json"
+	"errors"
 
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hown3d/kevo/pkg/types"
@@ -18,15 +18,9 @@ func (e ecsFetcher) getImagePullSecret(image *types.Image, secretArn *string) er
 	if err != nil {
 		return err
 	}
-
-	var auth types.RegistryAuth
-	secretVal := out.SecretString
-	if json.Valid([]byte(*secretVal)) {
-		err := json.Unmarshal([]byte(*secretVal), &auth)
-		if err != nil {
-			return err
-		}
-		image.Auth = auth
+	if out == nil {
+		return errors.New("get secret Value: output is nil")
 	}
-	return nil
+
+	return image.Auth.UnmarshalRegistryAuthJSON([]byte(*out.SecretString))
 }

@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/hown3d/kevo/pkg/types"
-	"github.com/hown3d/kevo/pkg/util/imageutil"
+	"github.com/hown3d/kevo/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
@@ -66,9 +66,9 @@ func (k *kubernetesFetcher) sendPodImagesToChan(ctx context.Context, pod *corev1
 func (k *kubernetesFetcher) getImagesFromContainerStatus(ctx context.Context, namespace string, imagePullSecrets []corev1.LocalObjectReference, status []corev1.ContainerStatus) []types.Image {
 	var images []types.Image
 	for _, container := range status {
-		name, tag := imageutil.SplitImageFromString(container.Image)
+		name, tag := util.SplitImageFromString(container.Image)
 		image := types.Image{Name: name, Tag: tag}
-		k.getImagePullSecret(ctx, image, namespace, imagePullSecrets)
+		k.getImagePullSecret(ctx, &image, namespace, imagePullSecrets)
 		images = append(images, image)
 	}
 	return images

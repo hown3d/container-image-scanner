@@ -4,7 +4,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/hown3d/kevo/pkg/fetch"
 	"github.com/hown3d/kevo/pkg/log"
 	"github.com/sirupsen/logrus"
@@ -16,9 +18,8 @@ const (
 )
 
 type ecsFetcher struct {
-	sess           *session.Session
-	ecs            *ecs.ECS
-	secretsmanager *secretsmanager.SecretsManager
+	ecs            ecsiface.ECSAPI
+	secretsmanager secretsmanageriface.SecretsManagerAPI
 	logger         log.Logger
 }
 
