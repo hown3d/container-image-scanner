@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kevo-api
+spec:
+  selector:
+    matchLabels:
+      app: kevo-api
+  template:
+    metadata:
+      labels:
+        app: kevo-api
+    spec:
+      containers:
+      - name: api
+        image: "{{.Values.api.repository}}:{{.Values.api.tag}}"
+        ports:
+          - containerPort: 10000
+            name: grpc
+        args:
+          - "-trivy-server-url"
+          - "http://trivy-server:4954"
+        resources:
+          requests:
+            memory: 25Mi
+            cpu: 100m
+          limits:
+            memory: 50Mi
+            cpu: 200m
+      restartPolicy: Always
+      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kevo-api
+spec:
+  selector:
+    app: kevo-api
+  ports:
+  - port: 10000
+    targetPort: grpc
+

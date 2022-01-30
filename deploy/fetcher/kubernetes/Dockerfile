@@ -10,18 +10,19 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY cmd/agent/ cmd/agent
+COPY cmd/kubernetes/ cmd/kubernetes
 COPY pkg/ pkg/
+COPY proto/ proto/
 
 #https://skaffold.dev/docs/workflows/debug/
 ARG SKAFFOLD_GO_GCFLAGS
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -a -o agent cmd/agent/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -a -o fetcher cmd/kubernetes/main.go
 
 FROM alpine
 ENV GOTRACEBACK=all
 WORKDIR /app
-COPY --from=builder /workspace/agent .
+COPY --from=builder /workspace/fetcher .
 USER 999:999
-ENTRYPOINT ["/app/agent"]
+ENTRYPOINT ["/app/fetcher"]

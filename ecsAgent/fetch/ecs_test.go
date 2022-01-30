@@ -50,8 +50,8 @@ func Test_fetcher_GetContainerImages(t *testing.T) {
 				taskDefArn: aws.String("test"),
 			},
 			want: []types.Image{
-				types.Image{Name: "docker.io/library/foo"},
-				types.Image{Name: "docker.io/library/bar"},
+				types.Image{Name: "foo"},
+				types.Image{Name: "bar"},
 			},
 			wantErr: false,
 		},

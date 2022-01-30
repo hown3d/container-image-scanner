@@ -12,6 +12,7 @@ RUN go mod download
 # Copy the go source
 COPY cmd/api/ cmd/api
 COPY pkg/ pkg/
+COPY proto/ proto/
 
 #https://skaffold.dev/docs/workflows/debug/
 ARG SKAFFOLD_GO_GCFLAGS
@@ -22,6 +23,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="${SKAFFOLD_GO_GCFLA
 FROM alpine
 ENV GOTRACEBACK=all
 WORKDIR /app
-COPY --from=builder /workspace/scanner .
+COPY --from=builder /workspace/api .
 USER 999:999
 ENTRYPOINT ["/app/api"]

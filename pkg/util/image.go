@@ -21,15 +21,6 @@ import (
 // other online repositories are qualified further by a domain name (for example,
 // quay.io/assemblyline/ubuntu).
 func ParseImageReference(s string) (name, tag, digest string) {
-	// prepend docker.io/library/... or docker.io/.../... for visibility if image is from dockerhub
-	slashes := strings.Split(s, "/")
-	switch len(slashes) {
-	case 1:
-		s = "docker.io/library/" + s
-	case 2:
-		s = "docker.io/" + s
-	}
-
 	withTag := strings.Split(s, ":")
 	if len(withTag) == 2 {
 		return withTag[0], withTag[1], ""

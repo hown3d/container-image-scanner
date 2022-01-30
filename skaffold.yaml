@@ -4,10 +4,22 @@ metadata:
   name: kevo
 build:
   artifacts:
-  - image: quay.io/hown3d/kevo
+  - image: quay.io/hown3d/kevo/kubernetes-fetcher
     docker:
-      dockerfile: Dockerfile
+      dockerfile: deploy/fetcher/kubernetes/Dockerfile
+  - image: quay.io/hown3d/kevo/api
+    docker:
+      dockerfile: deploy/api/Dockerfile
+  local:
+    useBuildkit: true
 deploy:
-  kubectl:
-    manifests:
-    - deploy/kube.yaml
+  helm:
+    releases:
+      - name: kevo
+        chartPath: deploy/kevo
+        artifactOverrides:
+          api: quay.io/hown3d/kevo/api # no tag present!
+          kubernetes: quay.io/hown3d/kevo/kubernetes-fetcher # no tag present!
+        imageStrategy:
+          helm: {}
+  

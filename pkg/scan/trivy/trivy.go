@@ -3,6 +3,7 @@ package trivy
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -75,7 +76,7 @@ func (t Trivy) Scan(image types.Image) (vulnerabilities []types.Vulnerability, e
 	ctx := context.Background()
 	sc, cleanUp, err := t.initializeDockerScanner(ctx, image)
 	if err != nil {
-		return vulnerabilities, err
+		return vulnerabilities, fmt.Errorf("initializing docker scanner: %w", err)
 	}
 
 	defer cleanUp()
@@ -89,7 +90,7 @@ func (t Trivy) Scan(image types.Image) (vulnerabilities []types.Vulnerability, e
 		ListAllPackages:     true,
 	})
 	if err != nil {
-		return vulnerabilities, err
+		return vulnerabilities, fmt.Errorf("scanning artifact: %w", err)
 	}
 
 	for _, result := range rep.Results {
@@ -117,12 +118,12 @@ func (t Trivy) initializeDockerScanner(ctx context.Context, i types.Image) (scan
 
 	dockerImage, cleanup, err := image.NewDockerImage(ctx, i.String(), dockerOption)
 	if err != nil {
-		return scanner.Scanner{}, nil, err
+		return scanner.Scanner{}, nil, fmt.Errorf("creating new docker image: %w", err)
 	}
 
 	artifact, err := artifactImage.NewArtifact(dockerImage, t.cache, artifact.Option{Quiet: true}, config.ScannerOption{})
 	if err != nil {
-		return scanner.Scanner{}, nil, err
+		return scanner.Scanner{}, nil, fmt.Errorf("creating new artifact: %w", err)
 	}
 
 	scanner := scanner.NewScanner(t.scanner, artifact)

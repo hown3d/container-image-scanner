@@ -2,7 +2,7 @@ module github.com/hown3d/kevo/ecsAgent
 
 go 1.17
 
-// replace github.com/hown3d/kevo => ../
+replace github.com/hown3d/kevo => ../
 
 require (
 	github.com/aws/aws-lambda-go v1.28.0
