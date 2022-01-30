@@ -66,8 +66,8 @@ func (k *kubernetesFetcher) sendPodImagesToChan(ctx context.Context, pod *corev1
 func (k *kubernetesFetcher) getImagesFromContainerStatus(ctx context.Context, namespace string, imagePullSecrets []corev1.LocalObjectReference, status []corev1.ContainerStatus) []types.Image {
 	var images []types.Image
 	for _, container := range status {
-		name, tag := util.SplitImageFromString(container.Image)
-		image := types.Image{Name: name, Tag: tag}
+		name, tag, digest := util.ParseImageReference(container.Image)
+		image := types.Image{Name: name, Tag: tag, Digest: digest}
 		k.getImagePullSecret(ctx, &image, namespace, imagePullSecrets)
 		images = append(images, image)
 	}

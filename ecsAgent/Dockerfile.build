@@ -1,0 +1,3 @@
+FROM lambci/lambda:build-go1.x
+
+RUN GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/fetch fetch/cmd/main.go

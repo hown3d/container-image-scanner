@@ -1,18 +1,20 @@
-package ecs
+package fetch
 
 import (
+	"context"
 	"errors"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/hown3d/kevo/internal/testutil"
-	"github.com/hown3d/kevo/mocks"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/hown3d/kevo/ecsAgent/fetch/mocks"
+	"github.com/hown3d/kevo/pkg/testutil"
 	"github.com/hown3d/kevo/pkg/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func Test_ecsFetcher_getImagePullSecret(t *testing.T) {
+func Test_fetcher_getImagePullSecret(t *testing.T) {
 	tests := []struct {
 		name          string
 		expected      types.RegistryAuth
@@ -28,9 +30,11 @@ func Test_ecsFetcher_getImagePullSecret(t *testing.T) {
 				Password: "test-pass",
 			},
 			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
-				mockObj.On("GetSecretValue", &secretsmanager.GetSecretValueInput{
-					SecretId: secretArn,
-				}).Return(&secretsmanager.GetSecretValueOutput{
+				mockObj.On("GetSecretValue",
+					mock.Anything,
+					&secretsmanager.GetSecretValueInput{
+						SecretId: secretArn,
+					}).Return(&secretsmanager.GetSecretValueOutput{
 					SecretString: aws.String(testutil.GenerateTestRegistryJSON(false, "", "test-user", "test-pass")),
 				}, nil)
 			},
@@ -45,11 +49,14 @@ func Test_ecsFetcher_getImagePullSecret(t *testing.T) {
 				Password: "test-pass",
 			},
 			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
-				mockObj.On("GetSecretValue", &secretsmanager.GetSecretValueInput{
-					SecretId: secretArn,
-				}).Return(&secretsmanager.GetSecretValueOutput{
-					SecretString: aws.String(testutil.GenerateTestRegistryJSON(true, "test-domain.com", "test-user", "test-pass")),
-				}, nil)
+				mockObj.On("GetSecretValue",
+					mock.Anything,
+					&secretsmanager.GetSecretValueInput{
+						SecretId: secretArn,
+					}).
+					Return(&secretsmanager.GetSecretValueOutput{
+						SecretString: aws.String(testutil.GenerateTestRegistryJSON(true, "test-domain.com", "test-user", "test-pass")),
+					}, nil)
 			},
 			wantErr: false,
 		},
@@ -57,9 +64,11 @@ func Test_ecsFetcher_getImagePullSecret(t *testing.T) {
 			name:      "non existing secret",
 			secretArn: aws.String("test-secret"),
 			mockSetupFunc: func(secretArn *string, mockObj *mocks.SecretsManagerAPI) {
-				mockObj.On("GetSecretValue", &secretsmanager.GetSecretValueInput{
-					SecretId: secretArn,
-				}).Return(nil, errors.New("error"))
+				mockObj.On("GetSecretValue",
+					mock.Anything,
+					&secretsmanager.GetSecretValueInput{
+						SecretId: secretArn,
+					}).Return(nil, errors.New("error"))
 			},
 			wantErr: true,
 		},
@@ -80,7 +89,7 @@ func Test_ecsFetcher_getImagePullSecret(t *testing.T) {
 			image := &types.Image{}
 			tt.mockSetupFunc(tt.secretArn, mockObj)
 
-			err := e.getImagePullSecret(image, tt.secretArn)
+			err := e.getImagePullSecret(context.Background(), image, tt.secretArn)
 			if tt.wantErr {
 				assert.Error(t, err)
 			}

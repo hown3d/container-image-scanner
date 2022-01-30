@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hown3d/kevo/internal/testutil"
+	"github.com/hown3d/kevo/pkg/testutil"
 	"github.com/hown3d/kevo/pkg/types"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
