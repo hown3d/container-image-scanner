@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/hown3d/kevo/pkg/fetch/kubernetes"
@@ -10,7 +11,10 @@ import (
 	"github.com/hown3d/kevo/pkg/tls"
 	"github.com/hown3d/kevo/pkg/types"
 	"github.com/sirupsen/logrus"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 type config struct {
@@ -51,7 +55,7 @@ func main() {
 			if err != nil {
 				logger.Errorf("sending image %v to api: %v", img.Name, err)
 			} else {
-				logger.Infof("successfully send image %v")
+				logger.Infof("successfully send image %v", img)
 			}
 		case err := <-errChan:
 			logger.Errorf("error while fetching images: %v", err)
@@ -67,16 +71,27 @@ func parseConfig(cfg *config) error {
 }
 
 func setupGRPCClient(cfg config) (client.Client, error) {
-	var tlsOpt grpc.DialOption
+
+	// retry on unavailable code
+	retryOpts := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffLinear(100 * time.Millisecond)),
+		grpc_retry.WithCodes(codes.Unavailable),
+	}
+
+	callOpts := []grpc.DialOption{
+		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)),
+		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...)),
+	}
+
 	if cfg.TLS {
 		creds, err := tls.LoadClientTLSCredentials(cfg.CACertPath)
 		if err != nil {
 			return client.Client{}, fmt.Errorf("getting tls credentials: %v", err)
 		}
-		tlsOpt = grpc.WithTransportCredentials(creds)
+		callOpts = append(callOpts, grpc.WithTransportCredentials(creds))
 	} else {
-		tlsOpt = grpc.WithInsecure()
+		callOpts = append(callOpts, grpc.WithInsecure())
 	}
 
-	return client.New("kubernetes", cfg.ServerAddress, tlsOpt)
+	return client.New("kubernetes", cfg.ServerAddress, callOpts...)
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
+	"github.com/hown3d/kevo/pkg/log"
 	"github.com/hown3d/kevo/pkg/scan"
 	"github.com/hown3d/kevo/pkg/scan/trivy"
 	"github.com/hown3d/kevo/pkg/types"
@@ -15,14 +15,16 @@ import (
 
 type Kevo struct {
 	scanner scan.Scanner
+	logger  log.Logger
 }
 
 var _ kevopb.KevoServiceServer = (*Kevo)(nil)
 
-func NewKevo(scanServerAddress string) Kevo {
+func NewKevo(scanServerAddress string, log log.Logger) Kevo {
 	scanner := trivy.New(scanServerAddress)
 	return Kevo{
 		scanner: scanner,
+		logger:  log,
 	}
 }
 
@@ -32,7 +34,7 @@ func (k Kevo) SendImage(ctx context.Context, req *kevopb.SendImageRequest) (*kev
 	vulnerabilities, err := k.scanner.Scan(image)
 	if err != nil {
 		err := fmt.Errorf("Failed to scan image %v: %v", image, err)
-		log.Println(err)
+		k.logger.Info(err)
 		return nil, err
 	}
 

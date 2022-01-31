@@ -5,7 +5,8 @@ go 1.17
 require (
 	github.com/aquasecurity/fanal v0.0.0-20211222140933-acaeaa362f9d
 	github.com/aquasecurity/trivy v0.21.3
-	github.com/aws/aws-sdk-go v1.42.23
+	github.com/caarlos0/env/v6 v6.0.0
+	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.19.1
@@ -40,9 +41,9 @@ require (
 	github.com/aquasecurity/go-version v0.0.0-20210121072130-637058cfe492 // indirect
 	github.com/aquasecurity/tfsec v0.63.1 // indirect
 	github.com/aquasecurity/trivy-db v0.0.0-20211222120943-2b609a291dbb // indirect
+	github.com/aws/aws-sdk-go v1.42.23 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/briandowns/spinner v1.12.0 // indirect
-	github.com/caarlos0/env/v6 v6.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/containerd v1.5.8 // indirect
@@ -75,11 +76,11 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.4.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v0.16.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

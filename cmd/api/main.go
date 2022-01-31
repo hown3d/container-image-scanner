@@ -10,6 +10,7 @@ import (
 	"github.com/hown3d/kevo/pkg/grpc/api"
 	tlsConf "github.com/hown3d/kevo/pkg/tls"
 	kevopb "github.com/hown3d/kevo/proto/kevo/v1alpha1"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -22,30 +23,34 @@ var (
 )
 
 func main() {
+	logger := logrus.New()
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%v", *port))
 	if err != nil {
-		log.Fatalf("Failed to listen on port %v: %v", *port, err)
+		logger.Fatalf("Failed to listen on port %v: %v", *port, err)
 	}
 
 	// test trivyURL
 	_, err = url.Parse(*trivyURL)
 	if err != nil {
-		log.Fatalf("url in trivy-server-url flag is not valid: %w", err)
+		logger.Fatalf("url in trivy-server-url flag is not valid: %v", err)
+	} else if *trivyURL == "" {
+		logger.Fatal("trivy-server-url flag empty")
 	}
 
 	var grpcOpts []grpc.ServerOption
 	if *useTls {
 		tlsCredentials, err := tlsConf.LoadServerTLSCredentials(*certFile, *keyFile)
 		if err != nil {
-			log.Fatalf("cannot load TLS credentials: %v", err)
+			logger.Fatalf("cannot load TLS credentials: %v", err)
 		}
 		grpcOpts = append(grpcOpts, grpc.Creds(tlsCredentials))
 	}
 
 	grpcServer := grpc.NewServer(grpcOpts...)
-	api := api.NewKevo(*trivyURL)
+	api := api.NewKevo(*trivyURL, logger)
 	kevopb.RegisterKevoServiceServer(grpcServer, api)
+	log.Printf("serving on %v", lis.Addr().String())
 	if err = grpcServer.Serve(lis); err != nil {
 		log.Fatal(err)
 	}

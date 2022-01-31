@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/aquasecurity/fanal/analyzer/config"
 	"github.com/aquasecurity/fanal/artifact"
@@ -14,10 +13,11 @@ import (
 	"github.com/aquasecurity/fanal/image"
 	fanalLog "github.com/aquasecurity/fanal/log"
 	fanalTypes "github.com/aquasecurity/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/cache"
+	trivyCache "github.com/aquasecurity/trivy/pkg/cache"
 	"github.com/aquasecurity/trivy/pkg/rpc/client"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
+	_ "github.com/hashicorp/go-retryablehttp"
 	"github.com/hown3d/kevo/pkg/log"
 	"github.com/hown3d/kevo/pkg/types"
 	"github.com/sirupsen/logrus"
@@ -25,27 +25,23 @@ import (
 )
 
 type Trivy struct {
-	timeout time.Duration
-	headers http.Header
-	url     string
-	logger  log.Logger
-	cache   fanalCache.ArtifactCache
-	scanner client.Scanner
+	headers    http.Header
+	url        string
+	logger     log.Logger
+	httpClient http.Client
+	cache      fanalCache.ArtifactCache
+	scanner    client.Scanner
 }
 
-func WithTimeout(timeout time.Duration) func(*Trivy) {
-	return func(t *Trivy) {
-		t.timeout = timeout
-	}
-}
+type TrivyOption func(*Trivy)
 
-func WithCustomHeaders(headers http.Header) func(*Trivy) {
+func WithCustomHeaders(headers http.Header) TrivyOption {
 	return func(t *Trivy) {
 		t.headers = headers
 	}
 }
 
-func WithLogger(l log.Logger) func(*Trivy) {
+func WithLogger(l log.Logger) TrivyOption {
 	return func(t *Trivy) {
 		t.logger = l
 	}
@@ -53,7 +49,6 @@ func WithLogger(l log.Logger) func(*Trivy) {
 
 func New(url string, options ...func(*Trivy)) Trivy {
 	t := Trivy{
-		timeout: 1 * time.Second,
 		url:     url,
 		headers: make(http.Header),
 		logger:  logrus.WithField("scanner", "trivy"),
@@ -62,11 +57,10 @@ func New(url string, options ...func(*Trivy)) Trivy {
 		opt(&t)
 	}
 
+	setupFanalLogger()
 	remoteScanner := client.NewProtobufClient(client.RemoteURL(url))
 	t.scanner = client.NewScanner(client.CustomHeaders(t.headers), remoteScanner)
-	t.cache = cache.NewRemoteCache(cache.RemoteURL(t.url), t.headers)
-
-	setupFanalLogger()
+	t.cache = trivyCache.NewRemoteCache(trivyCache.RemoteURL(t.url), t.headers)
 
 	return t
 }

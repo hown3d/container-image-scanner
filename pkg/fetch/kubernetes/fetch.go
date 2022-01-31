@@ -30,14 +30,6 @@ func (k *kubernetesFetcher) newPodController(imageChan chan types.Image, errChan
 		&corev1.Pod{},
 		resyncTime, //Duration is int64
 		cache.ResourceEventHandlerFuncs{
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				pod, ok := newObj.(*corev1.Pod)
-				if !ok {
-					// will not likely happen, because we only listen to changes for pods
-					errChan <- errors.New("Object is not a pod")
-				}
-				k.sendPodImagesToChan(context.TODO(), pod, imageChan)
-			},
 			AddFunc: func(obj interface{}) {
 				pod, ok := obj.(*corev1.Pod)
 				if !ok {
@@ -55,17 +47,15 @@ func (k *kubernetesFetcher) sendPodImagesToChan(ctx context.Context, pod *corev1
 	var images []types.Image
 	namespace := pod.Namespace
 	pullSecrets := pod.Spec.ImagePullSecrets
-	images = append(images, k.getImagesFromContainerStatus(ctx, namespace, pullSecrets, pod.Status.ContainerStatuses)...)
-	images = append(images, k.getImagesFromContainerStatus(ctx, namespace, pullSecrets, pod.Status.InitContainerStatuses)...)
-	images = append(images, k.getImagesFromContainerStatus(ctx, namespace, pullSecrets, pod.Status.EphemeralContainerStatuses)...)
+	images = append(images, k.getImagesFromContainerSpec(ctx, namespace, pullSecrets, pod.Spec.Containers)...)
 	for _, image := range images {
 		imageChan <- image
 	}
 }
 
-func (k *kubernetesFetcher) getImagesFromContainerStatus(ctx context.Context, namespace string, imagePullSecrets []corev1.LocalObjectReference, status []corev1.ContainerStatus) []types.Image {
+func (k *kubernetesFetcher) getImagesFromContainerSpec(ctx context.Context, namespace string, imagePullSecrets []corev1.LocalObjectReference, specs []corev1.Container) []types.Image {
 	var images []types.Image
-	for _, container := range status {
+	for _, container := range specs {
 		name, tag, digest := util.ParseImageReference(container.Image)
 		image := types.Image{Name: name, Tag: tag, Digest: digest}
 		k.getImagePullSecret(ctx, &image, namespace, imagePullSecrets)
