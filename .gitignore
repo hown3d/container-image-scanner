@@ -1,3 +1,6 @@
 .DS_Store
 main
 .vscode
+out
+.serverless
+node_modules

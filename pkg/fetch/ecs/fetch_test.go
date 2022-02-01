@@ -1,9 +1,9 @@
-package fetch
+package ecs
 
 import (
 	"testing"
 
-	"github.com/hown3d/kevo/ecsAgent/fetch/mocks"
+	"github.com/hown3d/kevo/pkg/fetch/mocks"
 	"github.com/hown3d/kevo/pkg/log"
 )
 

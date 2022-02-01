@@ -1,4 +1,4 @@
-package fetch
+package ecs
 
 import (
 	"encoding/json"

@@ -6,8 +6,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/caarlos0/env/v6"
-	"github.com/hown3d/kevo/ecsAgent/fetch"
+	"github.com/hown3d/kevo/pkg/fetch/ecs"
 	"github.com/hown3d/kevo/pkg/grpc/client"
 	"github.com/hown3d/kevo/pkg/tls"
 	"github.com/sirupsen/logrus"
@@ -27,25 +28,30 @@ func Handler(ctx context.Context, event events.CloudWatchEvent) error {
 
 	grpcClient, err := setupGRPCClient(cfg)
 	if err != nil {
-		logger.Errorf("setup grpc client: %w", err)
+		logger.Errorf("setup grpc client: %v", err)
 		return err
 	}
 
-	task, err := fetch.UnmarshalTask(event.Detail)
+	task, err := ecs.UnmarshalTask(event.Detail)
 	if err != nil {
-		logger.Errorf("creating fetcher: %w", err)
+		logger.Errorf("creating fetcher: %v", err)
 		return err
 	}
 
-	f, err := fetch.New(logger, cfg.AWSRegion)
+	// only get images if the desired status is RUNNING
+	if *task.DesiredStatus != string(types.DesiredStatusRunning) {
+		return nil
+	}
+
+	f, err := ecs.New(logger, cfg.AWSRegion)
 	if err != nil {
-		logger.Errorf("creating fetcher: %w", err)
+		logger.Errorf("creating fetcher: %v", err)
 		return err
 	}
 
 	images, err := f.GetContainerImages(ctx, task.TaskDefinitionArn)
 	if err != nil {
-		logger.Errorf("getting container images: %w", err)
+		logger.Errorf("getting container images: %v", err)
 		return err
 	}
 

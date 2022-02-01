@@ -1,4 +1,4 @@
-package fetch
+package ecs
 
 import (
 	"context"
@@ -47,7 +47,4 @@ func (f fetcher) GetContainerImages(ctx context.Context, taskDefArn *string) ([]
 		found = append(found, image)
 	}
 	return found, nil
-}
-
-func (f fetcher) SendImage(ctx context.Context, image types.Image) {
 }

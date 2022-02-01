@@ -1,4 +1,4 @@
-package fetch
+package ecs
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	ecsTypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/hown3d/kevo/ecsAgent/fetch/mocks"
+	"github.com/hown3d/kevo/pkg/fetch/mocks"
 	"github.com/hown3d/kevo/pkg/testutil"
 	"github.com/hown3d/kevo/pkg/types"
 	"github.com/stretchr/testify/assert"
